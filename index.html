@@ -1,0 +1,206 @@
+<html>
+ <head>
+    <style>
+        body {
+				margin: 0px;
+				background-color: #000000;
+				overflow: hidden;
+		}
+		h1{
+            color: white;
+			position: absolute;
+        }	
+
+		div.p1 {
+		width:50%;
+		margin: auto
+		align: left;
+		}
+		div.p2 {
+		width:50%;
+		margin: auto;
+		align: right;
+		}
+
+    </style>
+</head>
+
+ <body>
+
+     <div class="p1" align="center" style="float:left; width:50%" >
+        <h1 id="puntaje" style="float:center; aling: center;">Puntaje:0</h1>
+	</div> 	
+	
+    <div class="p2" align="center" style="float:right; width:50%" >
+        <h1 id="puntaje2" style="aling: center;">Puntaje:0</h1>
+
+    </div> 
+	
+
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/101/three.min.js"></script>
+ <script src="js/StereoEffect.js"></script>
+ <script src="js/DeviceOrientationControls.js"></script>
+ <script src="js/OrbitControls.js"></script>
+  <script>
+  
+    // scene
+	var scene;
+	scene = new THREE.Scene();
+    scene.background = new THREE.CubeTextureLoader()
+    scene.background = new THREE.CubeTextureLoader()
+	.setPath( 'container/MilkyWay/')
+	.load( [ 'px.jpg', 'nx.jpg', 'py.jpg', 'ny.jpg', 'pz.jpg', 'nz.jpg' ] );	
+	
+	//RENDERER	
+	var renderer = new THREE.WebGLRenderer( { antialias: true } );
+				renderer.setPixelRatio( window.devicePixelRatio );
+				renderer.setSize( window.innerWidth, window.innerHeight );
+				document.body.appendChild( renderer.domElement );
+    //CONTENEDOR
+	var contenedor= new THREE.Object3D();
+	scene.add(contenedor);
+	
+	//CONTENEDOR DE ESFERAS
+	var conte= new THREE.Object3D();
+	scene.add(conte);
+	
+	//CAMERA
+	var aspect = window.innerWidth / window.innerHeight;
+	var camera = new THREE.PerspectiveCamera( 75, aspect, 0.1, 1000);
+	var windowHalfX = window.innerWidth / 2;
+	var windowHalfY = window.innerHeight / 2;
+	contenedor.add(camera);
+	
+	//CONTROLS
+	var controls = new THREE.DeviceOrientationControls( camera );
+	
+	//LUCES
+	var ambientLight = new THREE.AmbientLight( 0x444444, 1.5 );
+	scene.add( ambientLight );
+	var pointLight = new THREE.PointLight( 0xEF1010, 1);
+	camera.add( pointLight );
+	pointLight.position.x=camera.position.x;
+    pointLight.position.y=camera.position.y;
+	pointLight.position.z=camera.position.z;
+	
+	//MOUSE
+	var mouse = new THREE.Vector2(), INTERSECTED;
+				function onDocumentMouseMove( event ) {
+				event.preventDefault();
+				mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+				mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+			}
+	document.addEventListener( 'mousemove', onDocumentMouseMove, false );
+
+	//RAYCAST
+	raycaster = new THREE.Raycaster();
+    raycaster.far=40; 
+	
+	//OTRAS VARIABLES
+	var puntos=0;
+	var errores=0;
+	
+	//LISTAS
+	var esferas= []
+	var pedacitos= []
+
+	//AUDIO
+	var listener = new THREE.AudioListener();
+	camera.add( listener );
+	var audioLoader = new THREE.AudioLoader();
+	var sound1 = new THREE.PositionalAudio( listener );
+	audioLoader.load('crack.MP3', function ( buffer ) {
+	sound1.setBuffer( buffer );
+	ound1.setRefDistance( 11);
+	} );
+				
+	//Texturas
+	var loader = new THREE.TextureLoader();
+	var texture1 = loader.load("c1.jpg");
+	var rojo = loader.load("rojo.jpg");
+	
+	//MIRA
+	var geometry = new THREE.TorusGeometry( 1, 0.1, 2, 25 );
+	var material = new THREE.MeshPhongMaterial({map: rojo,});
+	var mira = new THREE.Mesh( geometry, material );
+	camera.add(mira);
+	mira.name="mira";
+	
+	mira.position.x= camera.position.x;
+	mira.position.y= camera.position.y;
+	mira.position.z= camera.position.z- 15;
+	
+	for (var i=0;i<300;i++){
+		var geometry = new THREE.BoxGeometry( 1,1,1);
+		var material = new THREE.MeshPhongMaterial({map: texture1,});
+		var cube = new THREE.Mesh( geometry, material );
+		conte.add( cube );
+	    esferas.push(cube);
+		cube.position.x=Math.floor(Math.random() * (10 - (-15) ))-15;
+		cube.position.y=Math.floor(Math.random() * (3 - (1) ))+ 1;
+		cube.position.z=Math.floor(Math.random() * (-5000 - (-60) ))- 60;
+		//cube.add( sound1 );
+	}
+	
+	//STEREOEFFECT
+	var effect = new THREE.StereoEffect( renderer );
+	effect.setSize( window.innerWidth, window.innerHeight );
+	camera.updateProjectionMatrix();
+	
+	var render = function () {
+    
+    requestAnimationFrame( render );
+	controls.update();
+	conte.position.z+=0.3;
+	//SIGA LA CAMARA
+	pointLight.position.x=camera.position.x;
+    pointLight.position.y=camera.position.y;
+	pointLight.position.z=camera.position.z;
+	
+	raycaster.setFromCamera( mouse, camera,);
+	var intersects = raycaster.intersectObjects( scene.children, true );
+   
+		if (intersects.length > 0) {
+		  if (intersects[0].object.name!="mira") {
+		    if (intersects[0].object.name!="pedacito") {
+		        conte.remove(intersects[0].object);
+				//intersects[0].object.position.y-=6;
+				puntos+=1;
+				document.getElementById('puntaje').innerHTML='Puntaje= '+ puntos;
+				document.getElementById('puntaje2').innerHTML='Puntaje= '+ puntos;
+				
+				sound1.play();
+				
+				for (var a=0;a<10;a++){
+					var geometry2 = new THREE.BoxGeometry( 0.2,0.2,0.2);
+					var material = new THREE.MeshPhongMaterial({map: texture1,});
+					var pedacito = new THREE.Mesh( geometry2, material );
+					conte.add(pedacito);
+					pedacito.name="pedacito";
+					pedacitos.push(pedacito);
+					
+					pedacito.position.x=intersects[0].object.position.x + Math.random();
+					pedacito.position.y=intersects[0].object.position.y + Math.random();
+					pedacito.position.z=intersects[0].object.position.z + Math.random(); 
+		        }
+		    }
+		 }
+		}
+		
+		 
+        for (var a=0;a<pedacitos.length;a++){
+            pedacitos[a].position.y-=0.5;
+		}
+		
+	console.log(puntos);	
+    //renderer.render( scene, camera );
+	
+	effect.render( scene, camera );
+	
+};
+
+render();
+  
+  </script>
+</body>
+</html>
